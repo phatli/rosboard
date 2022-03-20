@@ -41,17 +41,18 @@ if(window.localStorage && window.localStorage.subscriptions) {
 
 let $grid = null;
 $(() => {
-  $grid = $('.grid').masonry({
-    itemSelector: '.card',
-    gutter: 10,
-    percentPosition: true,
-  });
+  $grid = $('.gridster ul').gridster({
+    widget_selector: 'div',
+    widget_base_dimensions: [500, 350],
+    widget_margins: [30,30],
+    helper:'clone',
+    avoid_overlapped_widgets: true,
+    resize: {
+      enabled:true,
+    }
+  }).data('gridster');
 });
 
-setInterval(() => {
-  $grid.masonry("reloadItems");
-  $grid.masonry();
-}, 500);
 
 setInterval(() => {
   if(currentTransport && !currentTransport.isConnected()) {
@@ -59,6 +60,7 @@ setInterval(() => {
     currentTransport.connect();
   }
 }, 5000);
+
 
 function updateStoredSubscriptions() {
   if(window.localStorage) {
@@ -71,11 +73,8 @@ function updateStoredSubscriptions() {
     window.localStorage['subscriptions'] = JSON.stringify(storedSubscriptions);
   }
 }
-
 function newCard() {
-  // creates a new card, adds it to the grid, and returns it.
-  let card = $("<div></div>").addClass('card')
-    .appendTo($('.grid'));
+  let card = $grid.add_widget('<div class="card"></div>');
   return card;
 }
 
@@ -148,6 +147,9 @@ let onTopics = function(topics) {
   .appendTo($("#topics-nav-system"));
 }
 
+function getRandomInt (min, max) {
+      return Math.floor(Math.random() * (max - min + 1)) + min;
+}
 function addTopicTreeToNav(topicTree, el, level = 0, path = "") {
   topicTree.children.sort((a, b) => {
     if(a.name>b.name) return 1;
@@ -210,7 +212,6 @@ function initSubscribe({topicName, topicType}) {
       console.log(e);
       card.remove();
     }
-    $grid.masonry("appended", card);
   }
   updateStoredSubscriptions();
 }
@@ -227,6 +228,7 @@ function initDefaultTransport() {
   });
   currentTransport.connect();
 }
+
 
 function treeifyPaths(paths) {
   // turn a bunch of ros topics into a tree
@@ -276,7 +278,7 @@ Viewer.onClose = function(viewerInstance) {
   let topicName = viewerInstance.topicName;
   let topicType = viewerInstance.topicType;
   currentTransport.unsubscribe({topicName:topicName});
-  $grid.masonry("remove", viewerInstance.card);
+  $grid.remove_widget(viewerInstance.card);
   delete(subscriptions[topicName].viewer);
   delete(subscriptions[topicName]);
   updateStoredSubscriptions();
